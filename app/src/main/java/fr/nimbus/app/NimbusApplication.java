@@ -2,6 +2,7 @@ package fr.nimbus.app;
 
 import fr.nimbus.api.annotations.NimbusApp;
 import fr.nimbus.core.handlers.HttpServerHandler;
+import fr.nimbus.core.managers.MiddlewareManager;
 import fr.nimbus.core.managers.ServiceManager;
 import fr.nimbus.core.managers.RouteManager;
 import fr.nimbus.core.utils.ClassScanner;
@@ -35,7 +36,8 @@ public class NimbusApplication {
 
             // Initialize managers
             ServiceManager serviceManager = new ServiceManager();
-            RouteManager routeManager = new RouteManager();
+            MiddlewareManager middlewareManager = new MiddlewareManager();
+            RouteManager routeManager = new RouteManager(middlewareManager);
 
             serviceManager.registerServices(classes);
             routeManager.registerRoutes(classes); // Registers controllers and routes

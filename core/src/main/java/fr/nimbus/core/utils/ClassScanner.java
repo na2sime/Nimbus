@@ -6,6 +6,10 @@ import java.util.List;
 
 public class ClassScanner {
 
+    private ClassScanner() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static List<Class<?>> scan(String packageName) throws ClassNotFoundException {
         String path = packageName.replace('.', '/');
         File directory = new File("target/classes/" + path);

@@ -1,69 +1,62 @@
 package fr.nimbus.core.handlers;
 
+import fr.nimbus.api.middleware.MiddlewareResult;
+import fr.nimbus.api.middleware.RequestContext;
+import fr.nimbus.core.managers.MiddlewareManager;
 import fr.nimbus.core.managers.RouteManager;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
-/**
- * A handler for processing incoming HTTP requests in a Netty server.
- * Extends {@link SimpleChannelInboundHandler} to manage {@link FullHttpRequest} messages.
- *
- * This class utilizes a {@link RouteManager} to delegate request routing to appropriate controller methods
- * based on HTTP method and URI path.
- *
- * Responsibilities include:
- * - Logging incoming HTTP requests.
- * - Delegating request handling to the {@link RouteManager}.
- * - Generating appropriate HTTP responses based on the request's routing outcome or errors.
- */
 public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
-    private static final Logger logger = LogManager.getLogger(HttpServerHandler.class);
-
     private final RouteManager routeManager;
+    private final MiddlewareManager middlewareManager;
 
     public HttpServerHandler(RouteManager routeManager) {
         this.routeManager = routeManager;
+        this.middlewareManager = new MiddlewareManager();
+
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
-        String httpMethod = request.method().name();
-        String requestPath = request.uri();
+        RequestContext requestContext = new RequestContext(request);
+        MiddlewareResult middlewareResult;
 
-        logger.info("Received request: {} {}", httpMethod, requestPath);
-
-        FullHttpResponse response;
-
-        try {
-            // Delegate request handling to RouteManager
-            Object result = routeManager.handleRequest(httpMethod, requestPath);
-
-            if (result != null) {
-                response = new DefaultFullHttpResponse(
-                        HttpVersion.HTTP_1_1,
-                        HttpResponseStatus.OK,
-                        ctx.alloc().buffer().writeBytes(result.toString().getBytes())
-                );
-                response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
-            } else {
-                response = new DefaultFullHttpResponse(
-                        HttpVersion.HTTP_1_1,
-                        HttpResponseStatus.NOT_FOUND
-                );
-            }
-        } catch (Exception e) {
-            logger.error("Error processing the request", e);
-            response = new DefaultFullHttpResponse(
-                    HttpVersion.HTTP_1_1,
-                    HttpResponseStatus.INTERNAL_SERVER_ERROR,
-                    ctx.alloc().buffer().writeBytes(("Internal Server Error: " + e.getMessage()).getBytes())
-            );
+        // Middleware execution BEFORE the controller
+        middlewareResult = middlewareManager.executeBefore(requestContext);
+        if (!middlewareResult.shouldProceed()) {
+            // Send an immediate response if any middleware blocks the request
+            sendResponse(ctx, middlewareResult.getResponse());
+            return;
         }
 
-        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        // Controller logic
+        Object response;
+        try {
+            response = routeManager.handleRequest(request.method().name(), request.uri());
+            if (response == null) {
+                response = "404 - Not Found";
+            }
+        } catch (Exception e) {
+            response = "500 - Internal Server Error: " + e.getMessage();
+        }
+
+        // Middleware execution AFTER the controller
+        response = middlewareManager.executeAfter(response, requestContext);
+
+        // Send the response
+        sendResponse(ctx, response);
+    }
+
+    private void sendResponse(ChannelHandlerContext ctx, Object response) {
+        FullHttpResponse httpResponse = new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1,
+                HttpResponseStatus.OK,
+                ctx.alloc().buffer().writeBytes(response.toString().getBytes())
+        );
+        httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
+        ctx.writeAndFlush(httpResponse).addListener(ChannelFutureListener.CLOSE);
     }
 }

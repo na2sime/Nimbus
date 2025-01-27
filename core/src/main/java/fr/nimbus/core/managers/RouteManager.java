@@ -2,48 +2,63 @@ package fr.nimbus.core.managers;
 
 import fr.nimbus.api.annotations.Controller;
 import fr.nimbus.api.annotations.Route;
+import fr.nimbus.api.annotations.UseMiddleware;
+import fr.nimbus.api.middleware.MiddlewareResult;
+import fr.nimbus.api.middleware.RequestContext;
+import fr.nimbus.api.middleware.Middleware;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class RouteManager {
     private static final Logger logger = LogManager.getLogger(RouteManager.class);
 
-    // Map to store registered routes: HTTP_METHOD:URL --> Method (controller method)
     private final Map<String, Method> routes = new HashMap<>();
-    // Map to store the corresponding controller instances
     private final Map<String, Object> controllers = new HashMap<>();
+    private final Map<String, List<Middleware>> routeSpecificMiddlewares = new HashMap<>();
+    private final MiddlewareManager middlewareManager;
 
-    /**
-     * Registers the routes and controllers from the given classes.
-     */
+    public RouteManager(MiddlewareManager middlewareManager) {
+        this.middlewareManager = middlewareManager;
+    }
+
     public void registerRoutes(Iterable<Class<?>> classes) {
         for (Class<?> clazz : classes) {
             if (clazz.isAnnotationPresent(Controller.class)) {
                 try {
-                    // Instantiate the controller and save it in a map
                     Object controllerInstance = clazz.getDeclaredConstructor().newInstance();
                     controllers.put(clazz.getName(), controllerInstance);
 
-                    // Retrieve the base path from @Controller
                     Controller controllerAnnotation = clazz.getAnnotation(Controller.class);
-                    String basePath = controllerAnnotation.path();
+                    String basePath = controllerAnnotation.path().trim();
 
-                    // Register the routes for each method with @Route
                     for (Method method : clazz.getDeclaredMethods()) {
                         if (method.isAnnotationPresent(Route.class)) {
                             Route routeAnnotation = method.getAnnotation(Route.class);
-                            String httpMethod = routeAnnotation.method().toUpperCase(); // e.g., GET
-                            String routePath = basePath + routeAnnotation.path().trim(); // Full path
+                            String httpMethod = routeAnnotation.method().toUpperCase();
+                            String routePath = basePath + routeAnnotation.path().trim();
 
-                            // Construct a unique route key: HTTP_METHOD:/path
                             String routeKey = httpMethod + ":" + routePath;
-
-                            // Register the route
                             routes.put(routeKey, method);
+
+                            // Vérification et gestion de la nouvelle annotation @UseMiddleware
+                            List<Middleware> middlewares = new ArrayList<>();
+                            if (method.isAnnotationPresent(UseMiddleware.class)) {
+                                UseMiddleware middlewareAnnotation = method.getAnnotation(UseMiddleware.class);
+                                for (Class<? extends Middleware> middlewareClass : middlewareAnnotation.value()) {
+                                    try {
+                                        Middleware middleware = middlewareManager.loadMiddleware(middlewareClass);
+                                        middlewares.add(middleware);
+                                    } catch (Exception e) {
+                                        logger.error("Failed to instantiate middleware: {}", middlewareClass.getName(), e);
+                                    }
+                                }
+                            }
+
+                            routeSpecificMiddlewares.put(routeKey, middlewares);
 
                             logger.info("Registered route: {} -> {}", routeKey, method.getName());
                         }
@@ -55,21 +70,36 @@ public class RouteManager {
         }
     }
 
-    /**
-     * Handles an incoming HTTP request and routes it to the appropriate controller method.
-     */
-    public Object handleRequest(String httpMethod, String path) throws Exception {
+    public Object handleRequest(String httpMethod, String path, RequestContext requestContext) throws Exception {
         String routeKey = httpMethod.toUpperCase() + ":" + path;
 
         Method method = routes.get(routeKey);
         if (method != null) {
-            // Get the controller instance for this route
+            MiddlewareResult result = middlewareManager.executeBefore(requestContext);
+            if (result != null && !result.shouldProceed()) {
+                return result.getResponse();
+            }
+
+            List<Middleware> specificMiddlewares = routeSpecificMiddlewares.getOrDefault(routeKey, Collections.emptyList());
+            for (Middleware middleware : specificMiddlewares) {
+                result = middleware.before(requestContext);
+                if (result != null && !result.shouldProceed()) {
+                    return result.getResponse();
+                }
+            }
+
             Object controller = controllers.get(method.getDeclaringClass().getName());
-            // Invoke the controller method and return the result
-            return method.invoke(controller);
+            Object response = method.invoke(controller);
+
+            for (Middleware middleware : specificMiddlewares) {
+                response = middleware.after(response, requestContext);
+            }
+
+            response = middlewareManager.executeAfter(response, requestContext);
+
+            return response;
         }
 
-        // Return null if no route matches (404)
-        return null;
+        return "404 - Not Found";
     }
 }
