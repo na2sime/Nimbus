@@ -1,5 +1,12 @@
 package fr.nimbus.api.middleware;
 
+/**
+ * Middleware interface provides mechanisms for handling HTTP requests
+ * and responses within an application framework. Middleware objects
+ * implementing this interface can intercept, process, or modify
+ * requests and responses at different stages of their lifecycle to enable
+ * functionalities such as authentication, logging, or request transformation.
+ */
 public interface Middleware {
     /**
      * Intercepts a request before it reaches the controller.
