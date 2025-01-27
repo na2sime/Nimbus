@@ -1,0 +1,12 @@
+plugins {
+    id 'application'
+}
+
+application {
+    mainClass = 'fr.nimbus.app.MainApp'
+}
+
+dependencies {
+    implementation project(':api')
+    implementation project(':core')
+}
