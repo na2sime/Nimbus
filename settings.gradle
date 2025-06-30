@@ -1,0 +1,9 @@
+rootProject.name = 'Nimbus'
+
+
+include 'api'
+include 'core'
+include 'example'
+
+include 'core'
+include 'core'

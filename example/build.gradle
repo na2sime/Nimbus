@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.gradleup.shadow' version '8.3.2'
+}
+
+group = 'fr.nassime.nimbus'
+version = '1.0.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(":api")
+    implementation project(':core')
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+application {
+    mainClass = 'fr.nassime.httpserver.example.SimpleExample'  // Spécifiez votre classe principale
+}
+
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'fr.nassime.httpserver.example.SimpleExample'
+        )
+    }
+}
+
+test {
+    useJUnitPlatform()
+}

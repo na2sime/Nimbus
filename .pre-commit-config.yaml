@@ -1,0 +1,23 @@
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  - repo: local
+    hooks:
+      - id: execute-gradle
+        name: Execute Gradle
+        entry: sh -c
+        args: ['cd "${PRE_COMMIT_ORIGIN_DIR}" && ./gradlew api:check']
+        language: system
+        pass_filenames: false

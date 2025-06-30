@@ -1,0 +1,14 @@
+server:
+  port: 8080
+  threadPoolSize: 20
+  verbose: true
+
+security:
+  requireApiKey: true
+  apiKeys:
+    keys:
+      - "sk-123456789"
+
+scanning:
+  autoScanControllers: true
+  basePackage: "fr.nassime.nimbus.example"

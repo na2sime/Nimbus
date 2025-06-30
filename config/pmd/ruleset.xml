@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<ruleset name="Custom Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Ruleset Nimbus
+    </description>
+
+    <exclude-pattern>.*/NimbusServer.java</exclude-pattern>
+    <exclude-pattern>.*/Router.java</exclude-pattern>
+    <exclude-pattern>.*/test/.*\.java</exclude-pattern>
+
+    <!-- Best practices -->
+    <rule ref="category/java/bestpractices.xml">
+        <exclude name="GuardLogStatement"/>
+        <exclude name="JUnitTestContainsTooManyAsserts"/>
+        <exclude name="AccessorMethodGeneration"/>
+        <exclude name="AvoidAccessibilityAlteration"/>
+    </rule>
+
+    <!-- Clean code -->
+    <rule ref="category/java/codestyle.xml">
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="OnlyOneReturn"/>
+        <exclude name="ShortVariable"/>
+        <exclude name="ShortMethod"/>
+        <exclude name="LongVariable"/>
+        <exclude name="CommentDefaultAccessModifier"/>
+        <exclude name="DefaultPackage"/>
+        <exclude name="CallSuperInConstructor"/>
+        <exclude name="FieldNamingConventions"/>
+        <exclude name="ShortMethodName"/>
+        <exclude name="FieldDeclarationsShouldBeAtStartOfClass"/>
+        <exclude name="MemberNamingConventions"/>
+        <exclude name="VariableNamingConventions"/>
+        <exclude name="MethodNamingConventions"/>
+        <exclude name="AvoidFieldNameMatchingMethodName"/>
+
+    </rule>
+
+    <!-- Error prevention -->
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="BeanMembersShouldSerialize"/>
+        <exclude name="DataflowAnomalyAnalysis"/>
+        <exclude name="NullAssignment"/>
+        <exclude name="AvoidLiteralsInIfCondition"/>
+        <exclude name="MissingSerialVersionUID"/>
+        <exclude name="AccessorClassGeneration"/>
+    </rule>
+
+    <!-- Performance -->
+    <rule ref="category/java/performance.xml">
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+    </rule>
+</ruleset>
