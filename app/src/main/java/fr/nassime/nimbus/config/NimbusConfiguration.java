@@ -16,7 +16,7 @@ public class NimbusConfiguration {
     public static class Server {
         private int port = 8080;
         private int threadPoolSize = 10;
-        private boolean verbose = false;
+        private boolean verbose = true;
     }
 
     @Data
