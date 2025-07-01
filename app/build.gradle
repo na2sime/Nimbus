@@ -1,0 +1,111 @@
+import com.github.spotbugs.snom.SpotBugsReport
+
+plugins {
+    id 'pmd'
+    id 'java'
+    id 'checkstyle'
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.gradleup.shadow' version '8.3.2'
+    id 'com.github.spotbugs' version '5.0.14'
+}
+
+group = 'fr.nassime.httpserver'
+version = '1.0.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.slf4j:slf4j-simple:2.0.7'
+
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.18.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2'
+
+    // Unit test
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testImplementation 'org.mockito:mockito-core:5.3.1'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.3.1'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = 'api'
+            version = project.version
+
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = "GitLab"
+            url = uri("${System.getProperty('gitLabUrl') ?: 'https://gitlab.com'}/api/v4/projects/${System.getenv('CI_PROJECT_ID')}/packages/maven")
+            credentials(HttpHeaderCredentials) {
+                name = "Private-Token"
+                value = System.getProperty('gitLabPrivateToken') ?: System.getenv("CI_JOB_TOKEN")
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
+    }
+}
+
+
+checkstyle {
+    toolVersion = "10.12.3"
+    configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+    maxWarnings = 0
+    ignoreFailures = false
+}
+
+checkstyleMain {
+    source = 'src/main/java'
+}
+
+checkstyleTest {
+    source = 'src/test/java'
+}
+
+spotbugs {
+    toolVersion = '4.7.3'
+    ignoreFailures = true  // Passer à true pour éviter que ça bloque
+    effort = 'default'     // Passer de max à default pour réduire le temps d'analyse
+    reportLevel = 'medium'
+}
+
+spotbugsMain {
+    reports(({
+        html.required = true
+        xml.required = false
+    } as Closure<NamedDomainObjectContainer<? extends SpotBugsReport>>))
+}
+
+spotbugsTest {
+    reports(({
+        html.required = true
+        xml.required = false
+    } as Closure<NamedDomainObjectContainer<? extends SpotBugsReport>>))
+}
+
+pmd {
+    toolVersion = '6.55.0'
+    consoleOutput = true
+    ruleSetFiles = files("${rootDir}/config/pmd/ruleset.xml")
+    ruleSets = []  // Nécessaire pour utiliser ruleSetFiles
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}

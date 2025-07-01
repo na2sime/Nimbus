@@ -1,7 +1,13 @@
 package fr.nassime.nimbus.example.controller;
 
-import fr.nassime.nimbus.api.annotations.*;
-import fr.nassime.nimbus.api.http.ResponseEntity;
+import fr.nassime.nimbus.annotations.*;
+import fr.nassime.nimbus.annotations.request.PathVariable;
+import fr.nassime.nimbus.annotations.request.RequestBody;
+import fr.nassime.nimbus.annotations.type.Delete;
+import fr.nassime.nimbus.annotations.type.Get;
+import fr.nassime.nimbus.annotations.type.Post;
+import fr.nassime.nimbus.annotations.type.Put;
+import fr.nassime.nimbus.http.ResponseEntity;
 import fr.nassime.nimbus.example.entity.User;
 
 @Controller(path = "/api/users")
@@ -9,7 +15,7 @@ public class UserController {
 
     @Get(path = "/{id}")
     public ResponseEntity<User> getUser(@PathVariable("id") String id) {
-        // Implementation to retrieve a user by ID
+        // Implémentation pour récupérer un utilisateur
         User user = findUserById(id);
         if (user != null) {
             return ResponseEntity.ok(user);
@@ -20,14 +26,14 @@ public class UserController {
 
     @Post
     public ResponseEntity<User> createUser(@RequestBody User user) {
-        // Implementation to create a new user
+        // Implémentation pour créer un utilisateur
         User createdUser = saveUser(user);
         return ResponseEntity.created(createdUser);
     }
 
     @Put(path = "/{id}")
     public ResponseEntity<User> updateUser(@PathVariable("id") String id, @RequestBody User user) {
-        // Implementation to update an existing user
+        // Implémentation pour mettre à jour un utilisateur
         user.setId(id);
         User updatedUser = updateUser(user);
         return ResponseEntity.ok(updatedUser);
@@ -35,12 +41,12 @@ public class UserController {
 
     @Delete(path = "/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable("id") String id) {
-        // Implementation to delete a user by ID
+        // Implémentation pour supprimer un utilisateur
         deleteUserById(id);
         return new ResponseEntity<>(null, 204);
     }
 
-    // Mock methods for demonstration purposes
+    // Méthodes fictives pour l'exemple
     private User findUserById(String id) {
         return null;
     }

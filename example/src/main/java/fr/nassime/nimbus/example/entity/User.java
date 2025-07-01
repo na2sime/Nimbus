@@ -11,8 +11,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class User {
 
-    // A simple User entity with fields for id, username, password, and email.
-
     private String id;
     private String username;
     private String password;

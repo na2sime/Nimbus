@@ -1,9 +1,4 @@
 rootProject.name = 'Nimbus'
 
-
-include 'api'
-include 'core'
+include 'app'
 include 'example'
-
-include 'core'
-include 'core'
