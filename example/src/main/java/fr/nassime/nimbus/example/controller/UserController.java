@@ -15,7 +15,7 @@ public class UserController {
 
     @Get(path = "/{id}")
     public ResponseEntity<User> getUser(@PathVariable("id") String id) {
-        // Implémentation pour récupérer un utilisateur
+        // Create a method to find a user by ID
         User user = findUserById(id);
         if (user != null) {
             return ResponseEntity.ok(user);
@@ -26,14 +26,14 @@ public class UserController {
 
     @Post
     public ResponseEntity<User> createUser(@RequestBody User user) {
-        // Implémentation pour créer un utilisateur
+        // Create a method to save a new user
         User createdUser = saveUser(user);
         return ResponseEntity.created(createdUser);
     }
 
     @Put(path = "/{id}")
     public ResponseEntity<User> updateUser(@PathVariable("id") String id, @RequestBody User user) {
-        // Implémentation pour mettre à jour un utilisateur
+        // Create a method to update an existing user
         user.setId(id);
         User updatedUser = updateUser(user);
         return ResponseEntity.ok(updatedUser);
@@ -41,12 +41,12 @@ public class UserController {
 
     @Delete(path = "/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable("id") String id) {
-        // Implémentation pour supprimer un utilisateur
+        // Create a method to delete a user by ID
         deleteUserById(id);
         return new ResponseEntity<>(null, 204);
     }
 
-    // Méthodes fictives pour l'exemple
+    // Fake methods to simulate database operations
     private User findUserById(String id) {
         return null;
     }

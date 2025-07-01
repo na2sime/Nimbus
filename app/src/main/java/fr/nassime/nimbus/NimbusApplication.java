@@ -33,15 +33,16 @@ public class NimbusApplication {
         }
 
         NimbusConfiguration config = loadConfiguration();
+        String effectiveBasePackage = config.getScanning().getBasePackage().isEmpty()
+            ? mainClass.getPackage().getName()
+            : config.getScanning().getBasePackage();
 
         NimbusServer server = NimbusServer.builder()
             .port(config.getServer().getPort())
             .threadPoolSize(config.getServer().getThreadPoolSize())
-            .requireApiKey(config.getSecurity().isRequireApiKey())
+            .apiKeyRequired(config.getSecurity().isRequireApiKey())
             .autoScanControllers(config.getScanning().isAutoScanControllers())
-            .basePackage(config.getScanning().getBasePackage().isEmpty()
-                ? mainClass.getPackage().getName()
-                : config.getScanning().getBasePackage())
+            .basePackage(effectiveBasePackage)
             .verbose(config.getServer().isVerbose())
             .build();
 
@@ -55,7 +56,6 @@ public class NimbusApplication {
 
         return server;
     }
-
 
     private static NimbusConfiguration loadConfiguration() {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());

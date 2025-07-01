@@ -6,6 +6,9 @@ import fr.nassime.nimbus.annotations.type.Post;
 import fr.nassime.nimbus.annotations.request.RequestBody;
 import fr.nassime.nimbus.annotations.Controller;
 import fr.nassime.nimbus.http.ResponseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,12 +34,15 @@ class IntegrationTest {
     @BeforeEach
     void setUp() throws IOException {
         server = NimbusServer.builder()
-                .port(TEST_PORT)
-                .build();
+            .port(TEST_PORT)
+            .autoScanControllers(false)
+            .verbose(true)
+            .threadPoolSize(2)
+            .build();
         server.registerController(new UserController());
         server.start();
         try {
-            TimeUnit.MILLISECONDS.sleep(500); // Petit délai pour laisser le serveur démarrer
+            TimeUnit.MILLISECONDS.sleep(500);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -92,7 +98,6 @@ class IntegrationTest {
 
     @Controller(path = "/api/users")
     static class UserController {
-
         private final Map<String, User> users = new HashMap<>();
 
         @Get(path = "/{id}")
@@ -109,43 +114,12 @@ class IntegrationTest {
         }
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     static class User {
         private String id;
         private String name;
         private String email;
-
-        public User() {
-        }
-
-        public User(String id, String name, String email) {
-            this.id = id;
-            this.name = name;
-            this.email = email;
-        }
-
-        // Getters and setters
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
     }
 }
