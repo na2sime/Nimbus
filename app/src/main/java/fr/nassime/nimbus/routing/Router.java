@@ -236,7 +236,6 @@ public abstract class Router implements HttpHandler {
         return pathParams != null ? pathParams.get(paramName) : null;
     }
 
-    // Méthodes d'aide pour les réponses HTTP
     protected void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
         byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");

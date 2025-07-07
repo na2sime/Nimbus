@@ -96,11 +96,11 @@ public class NimbusServer {
                     registerController(controller);
 
                     if (config.isVerbose()) {
-                        log.info("Controller instantiated: {}", controllerClass.getName());
+                        log.info("Controller instantiated: {}", controllerClass.getSimpleName());
                     }
                 } catch (Exception e) {
                     if (config.isVerbose()) {
-                        log.error("Failed to instantiate controller: {}", controllerClass.getName());
+                        log.error("Failed to instantiate controller: {}", controllerClass.getSimpleName());
                     }
                 }
             }
@@ -136,7 +136,7 @@ public class NimbusServer {
     public void addRoute(String path, HttpHandler handler) {
         mainRouter.register(path, handler);
         if (config.isVerbose()) {
-            log.info("Route added: {} -> {}", path, handler.getClass().getName());
+            log.info("Route added: {} -> {}", path, handler.getClass().getSimpleName());
         }
     }
 
