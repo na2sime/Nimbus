@@ -4,12 +4,14 @@ package fr.nassime.nimbus.routing;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import fr.nassime.nimbus.annotations.middleware.WithMiddleware;
 import fr.nassime.nimbus.annotations.request.PathVariable;
 import fr.nassime.nimbus.annotations.request.RequestBody;
 import fr.nassime.nimbus.annotations.type.Delete;
 import fr.nassime.nimbus.annotations.type.Get;
 import fr.nassime.nimbus.annotations.type.Post;
 import fr.nassime.nimbus.annotations.type.Put;
+import fr.nassime.nimbus.middleware.Middleware;
 import fr.nassime.nimbus.request.AbstractRequestHandler;
 import fr.nassime.nimbus.http.ResponseEntity;
 import fr.nassime.nimbus.utils.JsonUtils;
@@ -86,7 +88,7 @@ public abstract class Router implements HttpHandler {
     }
 
     private HandleMethod createHandlerForMethod(Object controller, Method method) {
-        return exchange -> {
+        HandleMethod originalHandler = exchange -> {
             try {
                 Object[] args = extractMethodParameters(method, exchange);
                 method.setAccessible(true);
@@ -112,6 +114,8 @@ public abstract class Router implements HttpHandler {
                 sendResponse(exchange, 500, "Server error: " + e.getMessage());
             }
         };
+
+        return wrapWithMiddleware(originalHandler, method, controller);
     }
 
     private Object[] extractMethodParameters(Method method, HttpExchange exchange) throws IOException {
@@ -135,6 +139,46 @@ public abstract class Router implements HttpHandler {
 
         return args;
     }
+
+    private List<Middleware> executeMiddlewares(Method method, Object controller, HttpExchange exchange) throws IOException {
+        List<Middleware> middlewares = new ArrayList<>();
+
+        WithMiddleware[] classMiddlewares = controller.getClass().getAnnotationsByType(WithMiddleware.class);
+        for (WithMiddleware middleware : classMiddlewares) {
+            try {
+                middlewares.add(middleware.value().getDeclaredConstructor().newInstance());
+            } catch (Exception e) {
+                log.error("Error instantiating middleware: {}", middleware.value().getName(), e);
+            }
+        }
+
+        WithMiddleware[] methodMiddlewares = method.getAnnotationsByType(WithMiddleware.class);
+        for (WithMiddleware middleware : methodMiddlewares) {
+            try {
+                middlewares.add(middleware.value().getDeclaredConstructor().newInstance());
+            } catch (Exception e) {
+                log.error("Error instantiating middleware: {}", middleware.value().getName(), e);
+            }
+        }
+
+        for (Middleware middleware : middlewares) {
+            if (!middleware.handle(exchange)) {
+                return null;
+            }
+        }
+
+        return middlewares;
+    }
+
+    private HandleMethod wrapWithMiddleware(HandleMethod originalHandler, Method method, Object controller) {
+        return exchange -> {
+            List<Middleware> middlewares = executeMiddlewares(method, controller, exchange);
+            if (middlewares != null) {
+                originalHandler.handle(exchange);
+            }
+        };
+    }
+
 
     private Object convertValue(String value, Class<?> targetType) {
         if (value == null) {
@@ -162,7 +206,6 @@ public abstract class Router implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
 
-        // Vérifier si nous sommes dans un sous-chemin
         Object uriPath = exchange.getAttribute("uri-path");
         if (uriPath != null) {
             path = (String) uriPath;
