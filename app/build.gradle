@@ -11,6 +11,21 @@ plugins {
     id 'com.github.spotbugs' version '5.0.14'
 }
 
+def getVersionFromGit() {
+    try {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'describe', '--tags', '--abbrev=0'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim().replaceAll("^v", "")
+    } catch (ignored) {
+        return "0.0.1-SNAPSHOT"
+    }
+}
+
+version = getVersionFromGit()
+
 java {
     withJavadocJar()
     withSourcesJar()
