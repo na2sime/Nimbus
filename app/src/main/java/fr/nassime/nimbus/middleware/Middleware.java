@@ -1,6 +1,7 @@
 package fr.nassime.nimbus.middleware;
 
 import com.sun.net.httpserver.HttpExchange;
+import fr.nassime.nimbus.annotations.middleware.WithMiddleware;
 
 import java.io.IOException;
 
@@ -20,6 +21,7 @@ import java.io.IOException;
  * This interface is often used in conjunction with annotations such as {@link WithMiddleware}
  * to apply middleware at class or method level in a router or controller structure,
  * ensuring modular and reusable request handling logic.
+ *
  *
  * Functional Interface:
  * This interface is marked as a functional interface, allowing its implementation
