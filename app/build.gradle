@@ -10,8 +10,59 @@ plugins {
     id 'com.github.spotbugs' version '5.0.14'
 }
 
-group = 'fr.nassime.httpserver'
-version = '1.0.0-SNAPSHOT'
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/na2sime/Nimbus")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+
+    publications {
+        gpr(MavenPublication) {
+            from components.java
+
+            artifactId = 'nimbus'
+
+            pom {
+                name = 'Nimbus'
+                description = 'A lightweight Java microframework for building RESTful APIs'
+                url = 'https://github.com/na2sime/Nimbus'
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = project.findProperty('developer.id') ?: 'na2sime'
+                        name = project.findProperty('developer.name') ?: 'Abdiou Nassime'
+                        email = project.findProperty('developer.email') ?: 'nassime.abdiou@icloud.com'
+                    }
+                }
+
+                scm {
+                    connection = 'scm:git:git://github.com/na2sime/Nimbus.git'
+                    developerConnection = 'scm:git:ssh://github.com/na2sime/Nimbus.git'
+                    url = 'https://github.com/na2sime/Nimbus'
+                }
+            }
+        }
+    }
+}
+
 
 repositories {
     mavenCentral()
@@ -36,32 +87,6 @@ dependencies {
     testImplementation 'org.assertj:assertj-core:3.24.2'
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            groupId = project.group
-            artifactId = 'api'
-            version = project.version
-
-            from components.java
-        }
-    }
-    repositories {
-        maven {
-            name = "GitLab"
-            url = uri("${System.getProperty('gitLabUrl') ?: 'https://gitlab.com'}/api/v4/projects/${System.getenv('CI_PROJECT_ID')}/packages/maven")
-            credentials(HttpHeaderCredentials) {
-                name = "Private-Token"
-                value = System.getProperty('gitLabPrivateToken') ?: System.getenv("CI_JOB_TOKEN")
-            }
-            authentication {
-                header(HttpHeaderAuthentication)
-            }
-        }
-    }
-}
-
-
 checkstyle {
     toolVersion = "10.12.3"
     configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
@@ -79,8 +104,8 @@ checkstyleTest {
 
 spotbugs {
     toolVersion = '4.7.3'
-    ignoreFailures = true  // Passer à true pour éviter que ça bloque
-    effort = 'default'     // Passer de max à default pour réduire le temps d'analyse
+    ignoreFailures = true
+    effort = 'default'
     reportLevel = 'medium'
 }
 
@@ -102,7 +127,7 @@ pmd {
     toolVersion = '6.55.0'
     consoleOutput = true
     ruleSetFiles = files("${rootDir}/config/pmd/ruleset.xml")
-    ruleSets = []  // Nécessaire pour utiliser ruleSetFiles
+    ruleSets = []
 }
 
 test {

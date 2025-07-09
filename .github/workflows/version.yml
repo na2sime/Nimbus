@@ -1,0 +1,34 @@
+name: Version Management
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get Next Version
+        id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+
+      - name: Update Version in Gradle Files
+        run: |
+          sed -i "s/version = '.*'/version = '${NEXT_VERSION}'/g" build.gradle
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub CI"
+          git add build.gradle
+          git commit -m "ci: update version to ${NEXT_VERSION}"
+          git tag -a "v${NEXT_VERSION}" -m "Version ${NEXT_VERSION}"
+          git push --follow-tags
+        env:
+          NEXT_VERSION: ${{ steps.semver.outputs.next }}

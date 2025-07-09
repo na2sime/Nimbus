@@ -2,6 +2,9 @@
   <img src="images/nimbus_transparant.png" alt="Logo Nimbus" width="300"/>
 </div>
 
+![Latest Version](https://img.shields.io/github/v/release/na2sime/Nimbus?include_prereleases&label=Latest%20Version)
+![GitHub](https://img.shields.io/github/license/na2sime/Nimbus)
+![Java Version](https://img.shields.io/badge/Java-17%2B-blue)
 
 Nimbus is a lightweight, annotation-driven Java microframework for rapidly building RESTful APIs with minimal boilerplate. It provides:
 
@@ -36,11 +39,31 @@ Nimbus is a lightweight, annotation-driven Java microframework for rapidly build
 
 ## 📥 Installation
 
+### Available Versions
+
+Latest stable version: ![Latest Release](https://img.shields.io/github/v/release/na2sime/Nimbus?label=release)
+
+| Branch  | Status | Description              |
+|---------|--------|--------------------------|
+| main    | Stable | Current stable version   |
+| develop | Dev    | Latest development build |
+
+You can also check all available versions on our [releases page](https://github.com/na2sime/Nimbus/releases).
+
+
 ### Gradle
 
 Add Nimbus to your `build.gradle`:
 
 ```groovy
+repositories {
+    mavenCentral()
+    maven { 
+        name = "Nimbus" 
+        url = uri("https://maven.pkg.github.com/na2sime/Nimbus")
+    } 
+}
+
 dependencies {
     implementation 'fr.nassime:nimbus:1.0.0'
 }
@@ -49,6 +72,15 @@ dependencies {
 ### Maven
 
 Add this to your `pom.xml`:
+
+```xml
+<repositories>
+    <repository>
+        <id>nimbus</id>
+        <url>https://maven.pkg.github.com/na2sime/Nimbus</url>
+    </repository>
+</repositories>
+```
 
 ```xml
 <dependency>
@@ -183,7 +215,7 @@ We welcome contributions!
 2. Create a feature branch (`git checkout -b feature/YourFeature`) 🌿
 3. Commit with descriptive messages 📝
 4. Ensure all pre-commit checks pass ✅
-5. Open a Pull Request against `main` 🎯
+5. Open a Pull Request against `develop` 🎯
 
 ---
 
