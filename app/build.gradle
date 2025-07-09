@@ -3,6 +3,7 @@ import com.github.spotbugs.snom.SpotBugsReport
 plugins {
     id 'pmd'
     id 'java'
+    id 'jacoco'
     id 'checkstyle'
     id 'java-library'
     id 'maven-publish'
@@ -13,6 +14,13 @@ plugins {
 java {
     withJavadocJar()
     withSourcesJar()
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
 
 publishing {
