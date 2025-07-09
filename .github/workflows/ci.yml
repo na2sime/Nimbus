@@ -1,4 +1,3 @@
-
 name: CI/CD
 
 on:
@@ -8,8 +7,22 @@ on:
     branches: [ develop, main ]
 
 jobs:
+  determine_job:
+    runs-on: ubuntu-latest
+    outputs:
+      should_test: ${{ steps.check.outputs.should_test }}
+    steps:
+      - id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]] || [[ "${{ github.event_name }}" == "push" && ! "${{ github.event.head_commit.message }}" =~ "Merge pull request" ]]; then
+            echo "should_test=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_test=false" >> $GITHUB_OUTPUT
+          fi
+
   quality:
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'Merge pull request'))
+    needs: determine_job
+    if: needs.determine_job.outputs.should_test == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +45,8 @@ jobs:
           ./quality-check.sh
 
   test:
-    needs: quality
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'Merge pull request'))
+    needs: [determine_job, quality]
+    if: needs.determine_job.outputs.should_test == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,12 +76,12 @@ jobs:
           retention-days: 14
 
   publish:
+    needs: determine_job
     if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
-    needs: [quality, test]
     steps:
       - uses: actions/checkout@v4
         with:
