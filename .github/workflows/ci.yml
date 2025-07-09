@@ -2,16 +2,17 @@ name: CI/CD
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ develop, main ]
   pull_request:
-    branches: [ main ]
+    branches: [ develop, main ]
 
 jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -32,14 +33,16 @@ jobs:
 
   publish:
     needs: quality
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -50,11 +53,23 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
 
-      - name: Extract version from tag
+      - name: Get version and create tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            LAST_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+            VERSION=$(echo ${LAST_TAG#v} | awk -F. '{print $1"."$2"."$3+1}')
+            echo "VERSION=${VERSION}-SNAPSHOT" >> $GITHUB_ENV
+            git tag -a "v${VERSION}-SNAPSHOT" -m "Development version ${VERSION}-SNAPSHOT"
+          else
+            LAST_TAG=$(git describe --tags --abbrev=0 | sed 's/-SNAPSHOT//')
+            VERSION=${LAST_TAG#v}
+            echo "VERSION=${VERSION}" >> $GITHUB_ENV
+            git tag -a "v${VERSION}" -m "Release version ${VERSION}"
+          fi
+          git push --tags
 
       - name: Build and Publish package
-        run: ./gradlew :app:publish
+        run: ./gradlew publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
