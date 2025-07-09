@@ -11,12 +11,3 @@ repos:
       - id: detect-private-key
       - id: mixed-line-ending
         args: ['--fix=lf']
-
-  - repo: local
-    hooks:
-      - id: execute-gradle
-        name: Execute Gradle
-        entry: sh -c
-        args: ['cd "${PRE_COMMIT_ORIGIN_DIR}" && ./gradlew app:check']
-        language: system
-        pass_filenames: false

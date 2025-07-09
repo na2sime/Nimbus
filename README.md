@@ -58,10 +58,10 @@ Add Nimbus to your `build.gradle`:
 ```groovy
 repositories {
     mavenCentral()
-    maven { 
-        name = "Nimbus" 
+    maven {
+        name = "Nimbus"
         url = uri("https://maven.pkg.github.com/na2sime/Nimbus")
-    } 
+    }
 }
 
 dependencies {

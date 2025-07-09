@@ -8,11 +8,10 @@ if file gradlew | grep -q CRLF; then
   chmod +x gradlew
 fi
 
-pre-commit clean
-pre-commit uninstall
-pre-commit install
+echo "Installing pre-commit hooks..."
+python -m pre_commit install
 
 echo "Running pre-commit checks..."
-pre-commit run --all-files || { echo "Pre-commit checks failed!"; exit 1; }
+python -m pre_commit run --all-files || { echo "Pre-commit checks failed!"; exit 1; }
 
 echo "All quality checks passed!"

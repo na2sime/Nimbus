@@ -8,4 +8,3 @@ import java.io.IOException;
 public interface Middleware {
     boolean handle(HttpExchange exchange) throws IOException;
 }
-
