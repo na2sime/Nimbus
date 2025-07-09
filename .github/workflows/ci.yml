@@ -1,3 +1,4 @@
+
 name: CI/CD
 
 on:
@@ -8,6 +9,7 @@ on:
 
 jobs:
   quality:
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'Merge pull request'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +33,7 @@ jobs:
 
   test:
     needs: quality
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'Merge pull request'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,13 +63,12 @@ jobs:
           retention-days: 14
 
   publish:
-    needs: test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
-
+    needs: [quality, test]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -94,7 +96,10 @@ jobs:
             TAG_NAME="develop"
           fi
 
-          git tag -f $TAG_NAME
-          git push origin $TAG_NAME -f
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+          git tag -f "$TAG_NAME"
+          git push -f origin "refs/tags/$TAG_NAME"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
