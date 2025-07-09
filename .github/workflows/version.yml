@@ -35,10 +35,15 @@ jobs:
             NEXT_VERSION=$(echo ${CURRENT_VERSION} | sed 's/-SNAPSHOT//')
           fi
 
-          echo "Creating new tag v${NEXT_VERSION}"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Actions"
-          git tag -a "v${NEXT_VERSION}" -m "Version ${NEXT_VERSION}"
-          git push origin "v${NEXT_VERSION}"
+          # Vérifier si le tag existe déjà
+          if git rev-parse "v${NEXT_VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${NEXT_VERSION} already exists, skipping tag creation"
+          else
+            echo "Creating new tag v${NEXT_VERSION}"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git config --global user.name "GitHub Actions"
+            git tag -a "v${NEXT_VERSION}" -m "Version ${NEXT_VERSION}"
+            git push origin "v${NEXT_VERSION}"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
