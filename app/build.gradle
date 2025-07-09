@@ -153,6 +153,24 @@ pmd {
     ruleSets = []
 }
 
+def getVersionFromTag() {
+    def version = '0.0.1-SNAPSHOT'
+    try {
+        def stdout = new ByteArrayOutputStream()
+        def result = exec {
+            commandLine 'git', 'describe', '--tags', '--abbrev=0'
+            standardOutput = stdout
+            ignoreExitValue = true
+        }
+        if (result.exitValue == 0) {
+            version = stdout.toString().trim().replaceAll("v", "")
+        }
+    } catch (Exception ignored) {
+        println "Could not retrieve version from git tags, using default version: ${version}"
+    }
+    return version
+}
+
 test {
     useJUnitPlatform()
     testLogging {
