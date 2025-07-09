@@ -9,5 +9,3 @@ repos:
       - id: check-json
       - id: check-merge-conflict
       - id: detect-private-key
-      - id: mixed-line-ending
-        args: ['--fix=lf']
