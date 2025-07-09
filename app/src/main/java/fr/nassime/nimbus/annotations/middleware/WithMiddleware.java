@@ -9,5 +9,3 @@ import java.lang.annotation.*;
 public @interface WithMiddleware {
     Class<? extends Middleware> value();
 }
-
-

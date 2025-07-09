@@ -15,6 +15,10 @@ allprojects {
         mavenCentral()
     }
 
+    tasks.withType(JavaCompile) {
+        options.release = 17
+    }
+
     java {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -43,7 +47,7 @@ subprojects {
 
 
 def getVersionFromTag() {
-    def version = '1.0.0-SNAPSHOT'
+    def version = '0.0.1-SNAPSHOT'
     try {
         def stdout = new ByteArrayOutputStream()
         def result = exec {
@@ -55,7 +59,6 @@ def getVersionFromTag() {
             version = stdout.toString().trim().replaceAll("v", "")
         }
     } catch (Exception ignored) {
-        // If git command fails, we keep the default version
         println "Could not retrieve version from git tags, using default version: ${version}"
     }
     return version
