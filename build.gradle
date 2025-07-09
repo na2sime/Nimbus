@@ -47,7 +47,7 @@ subprojects {
 
 
 def getVersionFromTag() {
-    def version = '0.0.1-SNAPSHOT'
+    def version = '1.0.1-SNAPSHOT'
     try {
         def stdout = new ByteArrayOutputStream()
         def result = exec {
