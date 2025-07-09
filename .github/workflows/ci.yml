@@ -90,3 +90,16 @@ jobs:
         run: ./gradlew app:publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or Update Branch Tag
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TAG_NAME="latest"
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            TAG_NAME="develop"
+          fi
+
+          git tag -f $TAG_NAME
+          git push origin $TAG_NAME -f
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
