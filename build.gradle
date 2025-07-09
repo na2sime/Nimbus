@@ -7,7 +7,7 @@ plugins {
 
 allprojects {
     group = 'fr.nassime.nimbus'
-    version = "1.0.0-SNAPSHOT"
+    version = "1.0.2"
 
     apply plugin: 'java'
 
