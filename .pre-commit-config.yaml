@@ -1,4 +1,3 @@
-
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
@@ -18,6 +17,6 @@ repos:
       - id: execute-gradle
         name: Execute Gradle
         entry: sh -c
-        args: ['cd "${PRE_COMMIT_ORIGIN_DIR}" && ./gradlew api:check']
+        args: ['cd "${PRE_COMMIT_ORIGIN_DIR}" && ./gradlew app:check']
         language: system
         pass_filenames: false
