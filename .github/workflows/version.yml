@@ -1,3 +1,4 @@
+
 name: Version Management
 
 on:
@@ -10,31 +11,52 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get Next Version
-        id: semver
-        uses: ietf-tools/semver-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
+      - name: Get Current Version
+        id: current_version
+        run: |
+          CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "current_tag=${CURRENT_TAG}" >> $GITHUB_OUTPUT
+          echo "Current tag: ${CURRENT_TAG}"
+
+      - name: Calculate Next Version
+        id: next_version
+        run: |
+          CURRENT_VERSION=$(echo "${{ steps.current_version.outputs.current_tag }}" | sed 's/^v//')
+
+          if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            # For develop branch, increment patch version
+            NEXT_VERSION=$(echo ${CURRENT_VERSION} | awk -F. -v OFS=. '{$NF += 1; print}' | sed 's/-SNAPSHOT//')
+            NEXT_VERSION="${NEXT_VERSION}-SNAPSHOT"
+          else
+            # For main branch, remove SNAPSHOT and keep version
+            NEXT_VERSION=$(echo ${CURRENT_VERSION} | sed 's/-SNAPSHOT//')
+          fi
+
+          echo "next_version=${NEXT_VERSION}" >> $GITHUB_OUTPUT
+          echo "Next version will be: ${NEXT_VERSION}"
 
       - name: Update Version in Gradle Files
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
-            NEXT_VERSION="${{ steps.semver.outputs.next }}-SNAPSHOT"
-          else
-            NEXT_VERSION="${{ steps.semver.outputs.next }}"
-          fi
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
 
+          # Update version in build.gradle
           sed -i "s/version = '.*'/version = '${NEXT_VERSION}'/g" build.gradle
-          git config --global user.email "ci@github.com"
-          git config --global user.name "GitHub CI"
+
+          # Configure git
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions"
+
+          # Commit changes
           git add build.gradle
-          git commit -m "ci: update version to ${NEXT_VERSION}"
+          git commit -m "chore: update version to ${NEXT_VERSION} [skip ci]"
+
+          # Create and push tag
           git tag -a "v${NEXT_VERSION}" -m "Version ${NEXT_VERSION}"
-          git push --follow-tags
+          git push origin "v${NEXT_VERSION}"
+          git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
