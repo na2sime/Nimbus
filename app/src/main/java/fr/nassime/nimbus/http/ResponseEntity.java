@@ -8,6 +8,8 @@ import lombok.Setter;
  * and content type. Designed for use in server-side applications to standardize
  * and simplify the construction of HTTP responses.
  *
+ * <h2>Response Entity Details</h2>
+ *
  * <h3>Overview:</h3>
  * The Generic parameter {@code T} allows the ResponseEntity to handle responses
  * with different types of body content like String, JSON objects, or other custom types.

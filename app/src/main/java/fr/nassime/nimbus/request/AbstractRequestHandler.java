@@ -212,7 +212,8 @@ public class AbstractRequestHandler implements HttpHandler {
 
     /**
      * Parses a query string into a map of key-value pairs.
-     * The query string is expected to be in the format "key1=value1&key2=value2".
+     * The expected format of the query string follows the pattern:
+     * {@code key1=value1&key2=value2}
      * If the query string is null or empty, an empty map is returned.
      * Invalid pairs (i.e., those without exactly one '=' character) are ignored.
      *
