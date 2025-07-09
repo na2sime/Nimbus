@@ -1,15 +1,19 @@
 package fr.nassime.nimbus.example.controller;
 
 import fr.nassime.nimbus.annotations.*;
+import fr.nassime.nimbus.annotations.middleware.WithMiddleware;
+import fr.nassime.nimbus.annotations.middleware.WithMiddlewares;
 import fr.nassime.nimbus.annotations.request.PathVariable;
 import fr.nassime.nimbus.annotations.request.RequestBody;
 import fr.nassime.nimbus.annotations.type.Delete;
 import fr.nassime.nimbus.annotations.type.Get;
 import fr.nassime.nimbus.annotations.type.Post;
 import fr.nassime.nimbus.annotations.type.Put;
+import fr.nassime.nimbus.example.middleware.AuthMiddleware;
 import fr.nassime.nimbus.http.ResponseEntity;
 import fr.nassime.nimbus.example.entity.User;
 
+@WithMiddleware(AuthMiddleware.class)
 @Controller(path = "/api/users")
 public class UserController {
 
@@ -32,6 +36,7 @@ public class UserController {
     }
 
     @Put(path = "/{id}")
+    @WithMiddleware(AuthMiddleware.class)
     public ResponseEntity<User> updateUser(@PathVariable("id") String id, @RequestBody User user) {
         // Create a method to update an existing user
         user.setId(id);
