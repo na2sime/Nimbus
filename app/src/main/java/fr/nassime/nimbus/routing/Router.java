@@ -29,6 +29,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The Router class represents an abstract HTTP request handler that manages routing logic.
+ * It provides mechanisms for registering routes and controllers, handling HTTP requests,
+ * and invoking appropriate methods on controllers based on annotations. It also supports
+ * middleware functionality for processing requests.
+ */
 @Slf4j
 public abstract class Router implements HttpHandler {
 
@@ -48,12 +54,41 @@ public abstract class Router implements HttpHandler {
         initRoutes();
     }
 
+    /**
+     * Abstract method to initialize route mappings for the Router.
+     *
+     * This method is called during the construction of the Router class and must be implemented
+     * by subclasses to define the particular routes handled by the application. Implementations
+     * should register paths and their corresponding handlers using methods like {@code register}.
+     *
+     * Routes define the association between HTTP request paths and the handlers that process
+     * those requests. Subclasses can structure routes, use base paths for controllers, and
+     * set up middleware where applicable to customize route handling.
+     */
     protected abstract void initRoutes();
 
+    /**
+     * Registers a new route with a given path and HTTP handler.
+     *
+     * @param path the HTTP request path to be associated with the handler
+     * @param handler the HTTP handler to process requests for the specified path
+     */
     public void register(String path, HttpHandler handler) {
         routes.add(new Route(path, handler));
     }
 
+    /**
+     * Registers a controller for routing by analyzing its class for annotations or implementing interfaces.
+     * If the provided object is annotated with {@link fr.nassime.nimbus.annotations.Controller}, its methods
+     * will be inspected and registered as routes based on the annotation's attributes.
+     *
+     * If the controller object implements the {@link Controller} interface, it delegates its registration
+     * process to the controller's {@code register} method.
+     *
+     * @param controller the controller object to be registered. This object should either be:
+     *                   - Annotated with {@link fr.nassime.nimbus.annotations.Controller}, or
+     *                   - An implementation of the {@link Controller} interface.
+     */
     public void registerController(Object controller) {
         Class<?> controllerClass = controller.getClass();
         fr.nassime.nimbus.annotations.Controller annotation = controllerClass.getAnnotation(fr.nassime.nimbus.annotations.Controller.class);
@@ -69,6 +104,16 @@ public abstract class Router implements HttpHandler {
         }
     }
 
+    /**
+     * Registers a method of a controller as a route based on HTTP annotations such as {@code @Get}, {@code @Post},
+     * {@code @Put}, and {@code @Delete}. The method's path is derived from the specified base path concatenated
+     * with the relative path defined in the annotation. The method is associated with the correct HTTP handler
+     * to process requests.
+     *
+     * @param controller The controller object containing the method being registered.
+     * @param method The method of the controller that will be registered as a route.
+     * @param basePath The base path prefix for the route.
+     */
     private void registerMethodAsRoute(Object controller, Method method, String basePath) {
         StringBuilder pathBuilder = new StringBuilder(basePath);
 
@@ -87,6 +132,16 @@ public abstract class Router implements HttpHandler {
         }
     }
 
+    /**
+     * Creates a handler for the specified controller method, enabling it to handle HTTP requests
+     * in the defined routing structure. This method wraps the provided method with middleware
+     * support and handles the invocation of the controller method while managing responses and errors.
+     *
+     * @param controller the controller instance containing the method to be executed
+     * @param method the controller method to be wrapped and executed for handling HTTP requests
+     * @return a {@code HandleMethod} instance that encapsulates the logic for invoking the method,
+     *         handling responses, and managing middleware
+     */
     private HandleMethod createHandlerForMethod(Object controller, Method method) {
         HandleMethod originalHandler = exchange -> {
             try {
@@ -118,6 +173,21 @@ public abstract class Router implements HttpHandler {
         return wrapWithMiddleware(originalHandler, method, controller);
     }
 
+    /**
+     * Extracts method parameters by analyzing the provided {@link Method} and the {@link HttpExchange}.
+     * This method resolves the values for annotated parameters (e.g., {@link PathVariable} and {@link RequestBody})
+     * and binds them accordingly. If a parameter is of type {@link HttpExchange}, the current exchange object is passed directly.
+     *
+     * The extraction involves:
+     * - Resolving path variables annotated with {@link PathVariable}, using the provided {@link HttpExchange}.
+     * - Parsing the request body into an object when annotated with {@link RequestBody}.
+     * - Passing the {@link HttpExchange} object when requested directly as a parameter.
+     *
+     * @param method   the {@link Method} being invoked, containing parameter metadata and annotations
+     * @param exchange the {@link HttpExchange} representing the current HTTP request and response context
+     * @return an array of objects representing the resolved and type-cast parameters for the method invocation
+     * @throws IOException if an error occurs while reading the request body or resolving parameters
+     */
     private Object[] extractMethodParameters(Method method, HttpExchange exchange) throws IOException {
         Parameter[] parameters = method.getParameters();
         Object[] args = new Object[parameters.length];
@@ -140,6 +210,24 @@ public abstract class Router implements HttpHandler {
         return args;
     }
 
+    /**
+     * Executes the middlewares associated with the specified controller class and method,
+     * applying them to the given HTTP exchange. The middlewares are processed in the order
+     * they are defined, and each middleware's `handle` method is invoked.
+     *
+     * If any middleware returns {@code false}, the middleware chain is terminated, and
+     * further processing does not occur. Otherwise, all middlewares are invoked sequentially.
+     *
+     * @param method the {@link Method} which represents the method in the controller
+     *               being executed. This is used to retrieve method-level middlewares.
+     * @param controller the object instance of the controller containing the method.
+     *                   This is used to retrieve class-level middlewares.
+     * @param exchange the {@link HttpExchange} object representing the HTTP request
+     *                 and response, which is passed to the middleware `handle` method.
+     * @return a list of {@link Middleware} objects that were executed, or {@code null}
+     *         if any middleware stopped the execution by returning {@code false}.
+     * @throws IOException if an input/output error occurs during middleware processing.
+     */
     private List<Middleware> executeMiddlewares(Method method, Object controller, HttpExchange exchange) throws IOException {
         List<Middleware> middlewares = new ArrayList<>();
 
@@ -170,6 +258,21 @@ public abstract class Router implements HttpHandler {
         return middlewares;
     }
 
+    /**
+     * Wraps the provided handler method with middleware processing logic.
+     * This method ensures that the specified middleware, defined at the method or controller level,
+     * is executed before the provided handler is invoked. If any middleware in the chain halts further
+     * processing, the handler is not executed.
+     *
+     * @param originalHandler the original handle method to be wrapped; this is the final handler to be executed
+     *                        if all middleware in the chain approve continuation.
+     * @param method the method associated with the route, potentially annotated with middleware definitions,
+     *               used to determine the middleware to apply.
+     * @param controller the controller instance containing the method; annotations on the controller class can
+     *                   also define middleware to apply.
+     * @return a wrapped {@code HandleMethod} that incorporates middleware processing logic along with the
+     *         provided original handler.
+     */
     private HandleMethod wrapWithMiddleware(HandleMethod originalHandler, Method method, Object controller) {
         return exchange -> {
             List<Middleware> middlewares = executeMiddlewares(method, controller, exchange);
@@ -180,6 +283,15 @@ public abstract class Router implements HttpHandler {
     }
 
 
+    /**
+     * Converts a string value into an instance of the specified target type.
+     * Supports conversion for common types such as String, Integer, Long, Double, and Boolean.
+     * For unsupported target types, the original string value is returned.
+     *
+     * @param value the string value to be converted
+     * @param targetType the class object representing the target type
+     * @return an object of the specified target type, or the original string value if the type is unsupported
+     */
     private Object convertValue(String value, Class<?> targetType) {
         if (value == null) {
             return null;
@@ -202,6 +314,15 @@ public abstract class Router implements HttpHandler {
         return value;
     }
 
+    /**
+     * Handles incoming HTTP requests by matching the request URI path against registered routes.
+     * If a matching route is found, it delegates the request handling to the corresponding handler
+     * after extracting path parameters and setting them as attributes in the exchange object.
+     * If no matching route is found, the request is delegated to a predefined "not found" handler.
+     *
+     * @param exchange the {@link HttpExchange} object representing the HTTP request and response context.
+     * @throws IOException if an I/O error occurs during request handling.
+     */
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
@@ -232,6 +353,15 @@ public abstract class Router implements HttpHandler {
         notFoundHandler.handle(exchange);
     }
 
+    /**
+     * Returns an implementation of {@link AbstractRequestHandler} that processes HTTP GET requests
+     * using the specified {@link HandleMethod}.
+     *
+     * @param method the {@link HandleMethod} instance responsible for handling the HTTP GET request.
+     *               This method encapsulates the logic for processing the request.
+     * @return an instance of {@link AbstractRequestHandler} configured to handle HTTP GET requests
+     *         and delegate the request handling logic to the provided {@link HandleMethod}.
+     */
     protected AbstractRequestHandler get(HandleMethod method) {
         return new AbstractRequestHandler() {
             @Override
@@ -241,6 +371,13 @@ public abstract class Router implements HttpHandler {
         };
     }
 
+    /**
+     * Creates and returns an {@link AbstractRequestHandler} for handling HTTP POST requests.
+     * The provided {@code method} is executed when a corresponding request is received.
+     *
+     * @param method the handler implementation defining logic to process the POST request.
+     * @return an {@link AbstractRequestHandler} configured to handle POST requests.
+     */
     protected AbstractRequestHandler post(HandleMethod method) {
         return new AbstractRequestHandler() {
             @Override
@@ -250,6 +387,13 @@ public abstract class Router implements HttpHandler {
         };
     }
 
+    /**
+     * Creates and returns an AbstractRequestHandler for handling HTTP PUT requests.
+     * The provided HandleMethod instance is used to process the PUT request.
+     *
+     * @param method the HandleMethod instance that defines the logic for handling the HTTP PUT request
+     * @return an AbstractRequestHandler that delegates the handling of the PUT request to the provided HandleMethod
+     */
     protected AbstractRequestHandler put(HandleMethod method) {
         return new AbstractRequestHandler() {
             @Override
@@ -259,6 +403,12 @@ public abstract class Router implements HttpHandler {
         };
     }
 
+    /**
+     * Creates an HTTP DELETE request handler using the provided method implementation.
+     *
+     * @param method the {@link HandleMethod} instance that defines the behavior of the DELETE request handler
+     * @return an {@link AbstractRequestHandler} instance configured to handle DELETE requests
+     */
     protected AbstractRequestHandler delete(HandleMethod method) {
         return new AbstractRequestHandler() {
             @Override
@@ -273,12 +423,33 @@ public abstract class Router implements HttpHandler {
         void handle(HttpExchange exchange) throws IOException;
     }
 
+    /**
+     * Extracts the value of the specified path parameter from the given HTTP exchange.
+     * The path parameters are expected to be stored as a Map attribute in the exchange under
+     * the key "pathParams".
+     *
+     * @param exchange the HttpExchange object containing the request information and attributes
+     * @param paramName the name of the path parameter to retrieve
+     * @return the value of the specified path parameter, or null if the parameter does not exist
+     */
     protected String getPathParam(HttpExchange exchange, String paramName) {
         @SuppressWarnings("unchecked")
         Map<String, String> pathParams = (Map<String, String>) exchange.getAttribute("pathParams");
         return pathParams != null ? pathParams.get(paramName) : null;
     }
 
+    /**
+     * Sends an HTTP response to the client with a specified status code and response body.
+     *
+     * This method prepares the response by setting the appropriate headers, encoding the response
+     * body in UTF-8, and writing it to the response output stream. It ensures proper handling of
+     * the response body by automatically closing the output stream after writing.
+     *
+     * @param exchange the HttpExchange object representing the HTTP request and response
+     * @param statusCode the HTTP status code to be sent in the response
+     * @param response the response body content to be sent to the client
+     * @throws IOException if an I/O error occurs while sending the response
+     */
     protected void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
         byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
@@ -288,6 +459,16 @@ public abstract class Router implements HttpHandler {
         }
     }
 
+    /**
+     * Sends a JSON response to the client using the provided HTTP exchange object, status code,
+     * and JSON response body. The method sets the required HTTP response headers to indicate
+     * the content type as JSON and writes the response body to the output stream of the exchange.
+     *
+     * @param exchange the HttpExchange object that represents the HTTP request and response
+     * @param statusCode the HTTP status code to be sent in the response
+     * @param jsonResponse the JSON string to be sent as the response body
+     * @throws IOException if an I/O error occurs while sending the response
+     */
     protected void sendJsonResponse(HttpExchange exchange, int statusCode, String jsonResponse) throws IOException {
         byte[] responseBytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
@@ -297,6 +478,17 @@ public abstract class Router implements HttpHandler {
         }
     }
 
+    /**
+     * Sends a JSON response to the client using the provided {@code HttpExchange}.
+     * Converts the given object to a JSON string and sends it with the specified HTTP status code.
+     * If an error occurs while converting the object to JSON, a 500 status code with an error message
+     * will be sent instead.
+     *
+     * @param exchange the {@code HttpExchange} object representing the ongoing HTTP transaction
+     * @param statusCode the HTTP status code to set for the response
+     * @param object the object to be serialized to JSON and sent in the response body
+     * @throws IOException if an I/O error occurs while sending the response
+     */
     protected void sendJsonResponse(HttpExchange exchange, int statusCode, Object object) throws IOException {
         try {
             String jsonResponse = JsonUtils.toJson(object);
@@ -307,6 +499,18 @@ public abstract class Router implements HttpHandler {
         }
     }
 
+    /**
+     * Reads the request body from an {@link HttpExchange} and deserializes it into an object of the specified type.
+     *
+     * This method attempts to read the request body as a UTF-8 encoded string and parse it as a JSON object.
+     * If the parsing fails, an {@link IOException} is thrown.
+     *
+     * @param <T>   the type of the object to deserialize the request body into
+     * @param exchange the {@link HttpExchange} containing the request data
+     * @param clazz    the {@link Class} object of the type to deserialize the JSON request body into
+     * @return the deserialized object of type {@code T}
+     * @throws IOException if an I/O error occurs while reading the request body or if JSON parsing fails
+     */
     protected <T> T readRequestBodyAsObject(HttpExchange exchange, Class<T> clazz) throws IOException {
         String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         try {

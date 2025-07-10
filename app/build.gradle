@@ -3,6 +3,7 @@ import com.github.spotbugs.snom.SpotBugsReport
 plugins {
     id 'pmd'
     id 'java'
+    id 'jacoco'
     id 'checkstyle'
     id 'java-library'
     id 'maven-publish'
@@ -10,9 +11,19 @@ plugins {
     id 'com.github.spotbugs' version '5.0.14'
 }
 
+group = 'fr.nassime.nimbus'
+version = '1.0.3'
+
 java {
     withJavadocJar()
     withSourcesJar()
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
 
 publishing {
@@ -128,6 +139,24 @@ pmd {
     consoleOutput = true
     ruleSetFiles = files("${rootDir}/config/pmd/ruleset.xml")
     ruleSets = []
+}
+
+def getVersionFromTag() {
+    def version = '0.0.1-SNAPSHOT'
+    try {
+        def stdout = new ByteArrayOutputStream()
+        def result = exec {
+            commandLine 'git', 'describe', '--tags', '--abbrev=0'
+            standardOutput = stdout
+            ignoreExitValue = true
+        }
+        if (result.exitValue == 0) {
+            version = stdout.toString().trim().replaceAll("v", "")
+        }
+    } catch (Exception ignored) {
+        println "Could not retrieve version from git tags, using default version: ${version}"
+    }
+    return version
 }
 
 test {
